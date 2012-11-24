@@ -33,7 +33,7 @@ def follow_arc(path, arc_sign, vertex):
 def make_expand(arcs_from, feasible_sign):
     def expand(path):
         for (arc_sign, vertex) in arcs_from(path.vertex):
-            if not feasible_sign(arc_sign):
+            if not feasible_sign == arc_sign:
                 continue
             yield follow_arc(path, arc_sign, vertex)
     return expand

@@ -7,7 +7,7 @@ from heapq import (heappush, heappop)
 def search(initial_paths, expand, has_reached_goal, extract_state):
     q = []
     for path in initial_paths:
-        heappush(q, paths)
+        heappush(q, path)
     closed = {}
     while q:
         path = heappop(q)
