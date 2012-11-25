@@ -41,10 +41,10 @@ def do(v):
     return ('do', v)
 
 def prob(left, right):
-    return ('prob', list(left), list(right))
+    return ('prob', tuple(left), tuple(right))
 
 def product(exprs):
-    return ('product', list(exprs))
+    return ('product', tuple(exprs))
 
 def sigma(v, expr):
     return ('sigma', v, expr)
@@ -157,10 +157,10 @@ def gen_matches(predicate, expr, inject=None):
 def make_list_inject(i, a):
     def list_inject(x=None, drop=False):
         if drop:
-            body = []
+            body = ()
         else:
-            body = [x]
-        return list(a[:i]) + body + list(a[i+1:])
+            body = (x, )
+        return tuple(a[:i]) + body + tuple(a[i+1:])
     return list_inject
 
 def make_left_inject(tag, iota, right):
@@ -177,4 +177,32 @@ def make_unary_inject(tag, iota):
     def inject(*args, **kwargs):
         return (tag, iota(*args, **kwargs))
     return inject
+
+# machinery for normalising things
+
+def normalise_expr(expr):
+    if is_v(expr):
+        return expr
+    elif is_do(expr):
+        return expr
+    elif is_prob(expr):
+        return normalise_prob(expr)
+    elif is_product(expr):
+        return normalise_product(expr)
+    elif is_sigma(expr):
+        return normalise_sigma(expr)
+    raise ValueError(expr)
+
+def normalise_expr_list(exprs):
+    """this is the only normalisation function that actually does anything!"""
+    return tuple(sorted(map(normalise_expr, exprs)))
+
+def normalise_prob(expr):
+    return (expr[0], normalise_expr_list(expr[1]), normalise_expr_list(expr[2]))
+
+def normalise_product(expr):
+    return (expr[0], normalise_expr_list(expr[1]))
+
+def normalise_sigma(expr):
+    return (expr[0], normalise_expr(expr[1]), normalise_expr(expr[2]))
 

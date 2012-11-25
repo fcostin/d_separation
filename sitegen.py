@@ -37,10 +37,10 @@ def gen_replacement_sites(predicate, expr):
 def make_prob_append_inject(left, right):
     def inject(x=None, drop=False):
         if drop:
-            start = []
+            start = ()
         else:
-            start = [x]
-        return prob(left, start + list(right))
+            start = (x, )
+        return prob(left, start + tuple(right))
     return inject
 
 def gen_birth_sites(expr):

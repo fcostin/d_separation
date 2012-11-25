@@ -15,3 +15,6 @@ def set_union(sets):
         result |= a
     return result
 
+def freeze_dict(d):
+    return tuple(sorted(d.iteritems()))
+
