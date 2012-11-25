@@ -13,6 +13,9 @@ def new_variable_name(bindings):
             return i
     raise ValueError(bindings)
 
+def count_sigmas(expr):
+    return len(list(E.gen_matches(E.is_sigma, expr)))
+
 def gen_condition_moves(universe, proof_state):
     """
     yield results of all possible single-vertex conditionings
@@ -67,6 +70,9 @@ def make_expand(graph, max_proof_length):
             return
         for succ_proof_state in gen_causal_rule_moves(RULES, proof_state, graph):
             yield succ_proof_state
+
+        if count_sigmas(proof_state.root_expr) > 2:
+            return # XXX HACK to try and prune things while debugging
         for succ_proof_state in gen_condition_moves(universe, proof_state):
             yield succ_proof_state
     return expand
@@ -80,11 +86,12 @@ def has_no_dos(expr):
 def observes_no_banned_values(banned_values, expr, bindings):
     for prob_expr, _ in E.gen_matches(E.is_prob, expr):
         right = prob_expr[2]
-        for v, _ in E.gen_matches(E.is_v, right):
-            name = E.unpack_v(v)
-            value = bindings[name]
-            if value in banned_values:
-                return False
+        for observed_expr in right:
+            for v, _ in E.gen_matches(E.is_v, observed_expr):
+                name = E.unpack_v(v)
+                value = bindings[name]
+                if value in banned_values:
+                    return False
     return True
 
 def make_goal_check(banned_values):
@@ -99,32 +106,6 @@ def proof_search(initial_proof_state, graph, goal_check, max_proof_length):
     extract_state = lambda proof_state : proof_state.extract_state()
     result = search(initial_paths, expand, goal_check, extract_state, verbose=True)
     return result
-
-
-def test_first_sub_problem():
-    graph = make_toy_graph()
-
-    initial_bindings = {
-        'x' : frozenset(['x']),
-        'y' : frozenset(['y']),
-        'z' : frozenset(['z']),
-    }
-
-    initial_expr = E.sigma(E.v('z'), E.product([
-        E.prob([E.v('y')], [E.v('z'), E.do(E.v('x'))]),
-        E.prob([E.v('z')], [E.do(E.v('x'))])]))
-
-    initial_proof_state = ProofState(
-        length = 0, # length of proof
-        bindings = initial_bindings,
-        root_expr = initial_expr,
-    ).normalise()
-
-    banned_values = set([frozenset(['h'])])
-    goal_check = make_goal_check(banned_values)
-    result = proof_search(initial_proof_state, graph, goal_check, max_proof_length=10)
-    assert result['reached_goal']
-
 
 
 def test_full_problem():
@@ -149,5 +130,15 @@ def test_full_problem():
     goal_check = make_goal_check(banned_values)
     result = proof_search(initial_proof_state, graph, goal_check, max_proof_length=7)
     assert result['reached_goal']
+    print 'success!'
+    print result['path']
 
 
+if __name__ == '__main__':
+    import cProfile
+    import pstats
+
+    p = cProfile.Profile()
+    p.runcall(test_full_problem)
+    s = pstats.Stats(p)
+    s.sort_stats('cumulative').print_stats(20)

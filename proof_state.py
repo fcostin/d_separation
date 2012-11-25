@@ -45,10 +45,10 @@ class ProofState:
         return (self.length, ) + self.extract_state()
 
     def __lt__(self, other):
-        self._tuple < other._tuple
+        return self._tuple < other._tuple
 
     def __gt(self, other):
-        self._tuple > other._tuple
+        return self._tuple > other._tuple
 
     def __str__(self):
         return '<ProofState length=%d expr=%s>' % (self.length, fmt(self.root_expr))
