@@ -1,5 +1,5 @@
 from util import freeze_dict
-from expr import (is_v, unpack_v, gen_matches, normalise_expr)
+from expr import (is_v, unpack_v, gen_matches, normalise_expr, fmt)
 from expr import v as v_
 
 
@@ -49,6 +49,9 @@ class ProofState:
 
     def __gt(self, other):
         self._tuple > other._tuple
+
+    def __str__(self):
+        return '<ProofState length=%d expr=%s>' % (self.length, fmt(self.root_expr))
 
 # utilities required to normalise the proof state
 
