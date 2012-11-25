@@ -49,7 +49,7 @@ def gen_birth_sites(expr):
     vs, dos = gather_atoms(right)
     yield (), inject, left, vs, dos
 
-def make_move_generator(expr_predicate, site_predicate=None, birth_site=False):
+def make_site_generator(expr_predicate, site_predicate=None, birth_site=False):
     if birth_site:
         gen_target_sites = gen_birth_sites
     else:
@@ -62,36 +62,36 @@ def make_move_generator(expr_predicate, site_predicate=None, birth_site=False):
                 yield (atom, inject, left, vs, dos)
     return gen_moves
 
-gen_v_moves = make_move_generator(is_prob_conditioned_on_v, is_v)
-gen_do_moves = make_move_generator(is_prob_conditioned_on_do, is_do)
-gen_birth_moves = make_move_generator(is_prob, birth_site=True)
+gen_v_sites = make_site_generator(is_prob_conditioned_on_v, is_v)
+gen_do_sites = make_site_generator(is_prob_conditioned_on_do, is_do)
+gen_birth_sites = make_site_generator(is_prob, birth_site=True)
 
 
-def test_gen_v_moves():
+def test_gen_v_sites():
     root_expr = prob([v('z')], [v('w'), do(v('x')), do(v('y'))])
 
-    moves = list(gen_v_moves(root_expr))
-    assert len(moves) == 1
-    atom, inject, left, vs, dos = moves[0]
+    sites = list(gen_v_sites(root_expr))
+    assert len(sites) == 1
+    atom, inject, left, vs, dos = sites[0]
     assert atom == v('w')
     assert inject('banana') == prob([v('z')], ['banana', do(v('x')), do(v('y'))])
     assert left == [v('z')]
     assert vs == []
     assert dos == [do(v('x')), do(v('y'))]
 
-def test_gen_do_moves():
+def test_gen_do_sites():
     root_expr = prob([v('z')], [v('w'), do(v('x')), do(v('y'))])
 
-    moves = list(gen_do_moves(root_expr))
-    assert len(moves) == 2
-    atom, inject, left, vs, dos = moves[0]
+    sites = list(gen_do_sites(root_expr))
+    assert len(sites) == 2
+    atom, inject, left, vs, dos = sites[0]
     assert atom == do(v('x'))
     assert inject('banana') == prob([v('z')], [v('w'), 'banana', do(v('y'))])
     assert left == [v('z')]
     assert vs == [v('w')]
     assert dos == [do(v('y'))]
 
-    atom, inject, left, vs, dos = moves[1]
+    atom, inject, left, vs, dos = sites[1]
     assert atom == do(v('y'))
     assert inject('banana') == prob([v('z')], [v('w'), do(v('x')), 'banana'])
     assert left == [v('z')]
