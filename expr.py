@@ -206,3 +206,30 @@ def normalise_product(expr):
 def normalise_sigma(expr):
     return (expr[0], normalise_expr(expr[1]), normalise_expr(expr[2]))
 
+
+# a single pass combined filter-map.
+# it doesn't actually filter. it acts like identity where predicate is false.
+# heh.
+
+def filter_map(predicate, f, expr):
+    # do we match?
+    if predicate(expr):
+        return f(expr)
+    else:
+        if is_v(expr):
+            return v(expr)
+        elif is_do(expr):
+            return do(filter_map(predicate, f, expr[1]))
+        elif is_prob(expr):
+            left, right = expr[1], expr[2]
+            return prob(filter_map_exprs(predicate, f, left), filter_map_exprs(predicate, f, right))
+        elif is_product(expr):
+            children = expr[1]
+            return product(filter_map_exprs(predicate, f, children))
+        elif is_sigma(expr):
+            left, right = expr[1], expr[2]
+            return sigma(filter_map(predicate, f, left), filter_map(predicate, f, right))
+
+def filter_map_exprs(predicate, f, exprs):
+    return tuple(filter_map(predicate, f, expr) for expr in exprs)
+

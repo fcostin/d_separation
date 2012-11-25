@@ -1,5 +1,5 @@
 from util import freeze_dict
-from expr import (is_v, unpack_v, gen_matches, normalise_expr, fmt)
+from expr import (is_v, unpack_v, gen_matches, normalise_expr, fmt, filter_map)
 from expr import v as v_
 
 
@@ -79,28 +79,12 @@ def relabel_bindings(new_labels, bindings):
         new_bindings[new_labels[k]] = v
     return new_bindings
 
-def replace_all_in_expr(expr, old, new):
-    if old == new:
-        return expr
-    p = lambda e : e == old
-    fixed_point = False
-    while not fixed_point:
-        fixed_point = True
-        for v, inject in gen_matches(p, expr):
-            expr = inject(new)
-            fixed_point = False
-            break
-    return expr
-
-def relabel_expr(new_labels, expr):
-    # hack: this is done in two passes, with this 'tagged' thing
-    # to ensure that things dont break when set(old_names) & set(new_names) is non-empty
-    tagged = lambda name : (None, name)
-    for old, new in new_labels.iteritems():
-        expr = replace_all_in_expr(expr, v_(old), v_(tagged(new)))
-    for _, new in new_labels.iteritems():
-        expr = replace_all_in_expr(expr, v_(tagged(new)), v_(new))
-    return expr
+def relabel_expr(new_labels, root_expr):
+    def p(expr):
+        return is_v(expr) and unpack_v(expr) in new_labels
+    def f(expr):
+        return v_(new_labels[unpack_v(expr)])
+    return filter_map(p, f, root_expr)
 
 
 def freeze_bindings(bindings):
