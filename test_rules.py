@@ -7,41 +7,137 @@ def make_toy_graph():
     edges = set([('h', 'x'), ('x', 'z'), ('z', 'y'), ('h', 'y')])
     return Graph(vertices, edges)
 
+def get_rule(name):
+    return [r for r in RULES if r['name']==name][0]
 
-def main():
 
+def test_claim_1():
+    """
+    test we can apply rule 2 forwards to rewrite pr(z|do(x)) as pr(z|x)
+    """
     graph = make_toy_graph()
-   
-    # bind variables to subsets of vertices in graph (hack)
     bindings = {
         'z' : set(['z']),
         'x' : set(['x']),
+        'y' : set(['y']),
     }
-
     bind = bindings.get
-
     root_expr = E.prob([E.v('z')], [E.do(E.v('x'))])
 
-    for rule in RULES:
-        print 'considering rule "%s"' % rule['name']
-        print '\troot expr:'
-        print '\t\t%s' % str(root_expr)
-        for site in rule['site_gen'](root_expr):
-            print '\ttarget application site:'
-            print '\t\t%s' % str(site)
-            prepped_args = prepare_rule_arguments(rule['unpack_target'], site)
-            bound_args = bind_arguments(bind, prepped_args)
-            print '\tbound args:'
-            print '\t\t%s' % str(bound_args)
-            can_apply = rule['assumption_test'](g = graph, **bound_args)
-            print '\tcan apply:'
-            print '\t\t%s' % bool(can_apply)
-            if can_apply:
-                root_expr_prime = rule['apply'](site)
-                print '\tresulting expr:'
-                print '\t\t%s' % str(root_expr_prime)
+    rule = get_rule('ignore_intervention_act_forward')
 
-        
-if __name__ == '__main__':
-    main()
+    sites = list(rule['site_gen'](root_expr))
+    assert len(sites) == 1
+    site, = sites
+
+    prepped_args = prepare_rule_arguments(rule['unpack_target'], site)
+    bound_args = bind_arguments(bind, prepped_args)
+    assert rule['assumption_test'](g = graph, **bound_args)
+
+    root_expr_prime = rule['apply'](site)
+    assert root_expr_prime == E.prob([E.v('z')], [E.v('x')])
+
+def test_claim_2():
+    """
+    test we can apply rule 2 in reverse to rewrite pr(y|z,do(x)) as pr(y|do(z),do(x))
+    """
+    graph = make_toy_graph()
+    bindings = {
+        'z' : set(['z']),
+        'x' : set(['x']),
+        'y' : set(['y']),
+    }
+    bind = bindings.get
+    root_expr = E.prob([E.v('y')], [E.v('z'), E.do(E.v('x'))])
+
+    rule = get_rule('ignore_intervention_act_reverse')
+
+    sites = list(rule['site_gen'](root_expr))
+    assert len(sites) == 1
+    site, = sites
+
+    prepped_args = prepare_rule_arguments(rule['unpack_target'], site)
+    bound_args = bind_arguments(bind, prepped_args)
+    assert rule['assumption_test'](g = graph, **bound_args)
+
+    root_expr_prime = rule['apply'](site)
+    assert root_expr_prime == E.prob([E.v('y')], [E.do(E.v('z')), E.do(E.v('x'))])
+
+def test_claim_3():
+    """
+    test we can apply rule 3 forwards to rewrite pr(y|do(z),do(x)) as pr(y|do(z))
+    """
+    graph = make_toy_graph()
+    bindings = {
+        'z' : set(['z']),
+        'x' : set(['x']),
+        'y' : set(['y']),
+    }
+    bind = bindings.get
+    root_expr = E.prob([E.v('y')], [E.do(E.v('z')), E.do(E.v('x'))])
+
+    rule = get_rule('ignore_intervention_entirely_forward')
+
+    sites = list(rule['site_gen'](root_expr))
+    assert len(sites) == 2
+    site = sites[1]
+
+    prepped_args = prepare_rule_arguments(rule['unpack_target'], site)
+    bound_args = bind_arguments(bind, prepped_args)
+    assert rule['assumption_test'](g = graph, **bound_args)
+
+    root_expr_prime = rule['apply'](site)
+    assert root_expr_prime == E.prob([E.v('y')], [E.do(E.v('z'))])
+
+def test_claim_4():
+    """
+    test we can apply rule 2 forwards to rewrite pr(y|x,do(z)) as pr(y|x,z)
+    """
+    graph = make_toy_graph()
+    bindings = {
+        'z' : set(['z']),
+        'x' : set(['x']),
+        'y' : set(['y']),
+    }
+    bind = bindings.get
+    root_expr = E.prob([E.v('y')], [E.v('x'), E.do(E.v('z'))])
+
+    rule = get_rule('ignore_intervention_act_forward')
+
+    sites = list(rule['site_gen'](root_expr))
+    assert len(sites) == 1
+    site, = sites
+
+    prepped_args = prepare_rule_arguments(rule['unpack_target'], site)
+    bound_args = bind_arguments(bind, prepped_args)
+    assert rule['assumption_test'](g = graph, **bound_args)
+
+    root_expr_prime = rule['apply'](site)
+    assert root_expr_prime == E.prob([E.v('y')], [E.v('x'), E.v('z')])
+
+def test_claim_5():
+    """
+    test we can apply rule 3 forwards to rewrite pr(x|do(z)) as pr(x)
+    """
+    graph = make_toy_graph()
+    bindings = {
+        'z' : set(['z']),
+        'x' : set(['x']),
+        'y' : set(['y']),
+    }
+    bind = bindings.get
+    root_expr = E.prob([E.v('x')], [E.do(E.v('z'))])
+
+    rule = get_rule('ignore_intervention_entirely_forward')
+
+    sites = list(rule['site_gen'](root_expr))
+    assert len(sites) == 1
+    site, = sites
+
+    prepped_args = prepare_rule_arguments(rule['unpack_target'], site)
+    bound_args = bind_arguments(bind, prepped_args)
+    assert rule['assumption_test'](g = graph, **bound_args)
+
+    root_expr_prime = rule['apply'](site)
+    assert root_expr_prime == E.prob([E.v('x')], [])
 
