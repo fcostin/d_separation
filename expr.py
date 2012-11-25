@@ -76,9 +76,9 @@ def fmt(expr):
     elif is_prob(expr):
         return 'pr(%s|%s)' % (fmt_list(expr[1]), fmt_list(expr[2]))
     elif is_product(expr):
-        return 'product{%s}' % fmt_list(expr[1])
+        return 'product(%s)' % fmt_list(expr[1])
     elif is_sigma(expr):
-        return 'sigma(%s){%s}' % (fmt(expr[1]), fmt(expr[2]))
+        return 'sigma(%s, %s)' % (fmt(expr[1]), fmt(expr[2]))
 
 def fmt_list(exprs):
     return ','.join(map(fmt, exprs))
