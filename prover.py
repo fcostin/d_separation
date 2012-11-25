@@ -1,26 +1,48 @@
 import expr as E
 from rules import (RULES, prepare_rule_arguments, bind_arguments)
 from test_rules import make_toy_graph
-from proof_state import ProofState
+from proof_state import (ProofState, get_variable_order)
 from search import search
 
-def new_binding(bindings, value):
+def new_variable_name(bindings):
     """
-    return a new variable (not already seen in bindings) for given value
-
-    there is no requirement that value is distinct from any of the
-    currently bound values
+    return a new variable name
     """
-    pass
+    for i in xrange(len(bindings) + 1):
+        if i not in bindings:
+            return i
+    raise ValueError(bindings)
 
-def gen_conditionings(bindings, root_expr):
+def gen_condition_moves(universe, proof_state):
     """
-    yield all possible conditionings to consider
-
-    yields (bindings_prime, root_expr_prime)
+    yield results of all possible single-vertex conditionings
     """
-    pass
+    def gen_expansions(value, proof_state):
+        for (prob_expr, inject) in E.gen_matches(E.is_prob, proof_state.root_expr):
+            prob_vars = get_variable_order(prob_expr)
+            prob_values = [proof_state.bindings[v] for v in prob_vars]
+            if value in prob_values:
+                continue
+            # prob([x],[w]) -> sigma(y, product([prob([x], [y, w]), p([y], [w])]))
+            i = new_variable_name(proof_state.bindings)
+            v_i = E.v(i)
+            alpha_left = tuple(prob_expr[1])
+            alpha_right = (v_i, ) + tuple(prob_expr[2])
+            alpha = E.prob(alpha_left, alpha_right)
+            beta_left = (v_i, )
+            beta_right = tuple(prob_expr[2])
+            beta = E.prob(beta_left, beta_right)
+            expr_prime = E.sigma(v_i, E.product([alpha, beta]))
 
+            succ_length = proof_state.length + 1
+            succ_bindings = dict(proof_state.bindings)
+            succ_bindings[i] = value
+            succ_root_expr = inject(expr_prime)
+            yield ProofState(succ_length, succ_bindings, succ_root_expr).normalise()
+    
+    for value in universe:
+        for succ_proof_state in gen_expansions(value, proof_state):
+            yield succ_proof_state
 
 
 def gen_causal_rule_moves(rules, proof_state, graph):
@@ -36,37 +58,46 @@ def gen_causal_rule_moves(rules, proof_state, graph):
             succ_length = proof_state.length + 1
             succ_bindings = dict(proof_state.bindings)
             succ_root_expr = rule['apply'](site)
-            yield ProofState(succ_length, succ_bindings, succ_root_expr)
+            yield ProofState(succ_length, succ_bindings, succ_root_expr).normalise()
 
-def make_expand(graph):
-    # universe = set(frozenset([v]) for v in graph.vertices)
+def make_expand(graph, max_proof_length):
+    universe = set(frozenset([v]) for v in graph.vertices)
     def expand(proof_state):
+        if proof_state.length == max_proof_length:
+            return
         for succ_proof_state in gen_causal_rule_moves(RULES, proof_state, graph):
+            yield succ_proof_state
+        for succ_proof_state in gen_condition_moves(universe, proof_state):
             yield succ_proof_state
     return expand
 
-def make_goal_check(goal_expr, max_proof_length=10):
-    # XXX this goal check is flawed in three ways:
-    #
-    # 1.    the goal_expr needs to be instantiated with the bound values of the variables
-    #
-    # 2.    we need to instantiate the proof_state.root_expr with its own bound values,
-    #       since those symbols have been rewritten during normalisation
-    #
-    # 3.    we cant just instantiate the index of the sum! but we do need to state
-    #       the domain that the sum is running over!
-    #
+
+def has_no_dos(expr):
+    for _ in E.gen_matches(E.is_do, expr):
+        return False
+    return True
+
+def observes_no_banned_values(banned_values, expr, bindings):
+    for prob_expr, _ in E.gen_matches(E.is_prob, expr):
+        right = prob_expr[2]
+        for v, _ in E.gen_matches(E.is_v, right):
+            name = E.unpack_v(v)
+            value = bindings[name]
+            if value in banned_values:
+                return False
+    return True
+
+def make_goal_check(banned_values):
     def has_reached_goal(proof_state):
-        return (proof_state.root_expr == goal_expr) or (proof_state.length > max_proof_length)
+        return (has_no_dos(proof_state.root_expr) and
+            observes_no_banned_values(banned_values, proof_state.root_expr, proof_state.bindings))
     return has_reached_goal
 
-
-def proof_search(initial_proof_state, graph, goal_expr):
+def proof_search(initial_proof_state, graph, goal_check, max_proof_length):
     initial_paths = [initial_proof_state]
-    expand = make_expand(graph)
-    has_reached_goal = make_goal_check(goal_expr)
+    expand = make_expand(graph, max_proof_length)
     extract_state = lambda proof_state : proof_state.extract_state()
-    result = search(initial_paths, expand, has_reached_goal, extract_state)
+    result = search(initial_paths, expand, goal_check, extract_state, verbose=True)
     return result
 
 
@@ -74,9 +105,9 @@ def test_first_sub_problem():
     graph = make_toy_graph()
 
     initial_bindings = {
-        'x' : set(['x']),
-        'y' : set(['y']),
-        'z' : set(['z']),
+        'x' : frozenset(['x']),
+        'y' : frozenset(['y']),
+        'z' : frozenset(['z']),
     }
 
     initial_expr = E.sigma(E.v('z'), E.product([
@@ -89,14 +120,9 @@ def test_first_sub_problem():
         root_expr = initial_expr,
     ).normalise()
 
-    print initial_proof_state.bindings
-    print initial_proof_state.root_expr
-
-    goal_expr = E.sigma(E.v('z'), E.product([
-        E.prob([E.v('y')], [E.v('z'), E.do(E.v('x'))]),
-        E.prob([E.v('z')], [E.v('x')])]))
-
-    result = proof_search(initial_proof_state, graph, goal_expr)
+    banned_values = set([frozenset(['h'])])
+    goal_check = make_goal_check(banned_values)
+    result = proof_search(initial_proof_state, graph, goal_check, max_proof_length=10)
     assert result['reached_goal']
 
 
@@ -119,7 +145,9 @@ def test_full_problem():
         root_expr = initial_expr,
     ).normalise()
 
-    result = proof_search(initial_proof_state, graph, goal_expr)
+    banned_values = set([frozenset(['h'])])
+    goal_check = make_goal_check(banned_values)
+    result = proof_search(initial_proof_state, graph, goal_check, max_proof_length=7)
     assert result['reached_goal']
 
 
