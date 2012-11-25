@@ -1,8 +1,8 @@
 import expr as E
 
-from util import (set_union)
+from util import (identity, set_union)
 from main import (make_toy_graph, ignore_intervention_act_assumption)
-from sitegen import (gen_do_sites)
+from sitegen import (gen_do_sites, gen_v_sites, gen_birth_sites)
 
 def prepare_rule_arguments(unpack_target, site):
     """
@@ -42,6 +42,32 @@ def apply_ignore_intervention_act_forward(site):
     v = E.unpack_do(atom)
     return inject(v)
 
+def apply_ignore_intervention_act_reverse(site):
+    target, inject = site[:2]
+    v, = target
+    return inject(E.do(v))
+
+
+
+RULES = [
+    {
+        'name' : 'ignore_intervention_act_forward',
+        'site_gen' : gen_do_sites,
+        'unpack_target' : E.unpack_do,
+        'assumption_test' : ignore_intervention_act_assumption,
+        'apply' : apply_ignore_intervention_act_forward,
+    },
+    {
+        'name' : 'ignore_intervention_act_reverse',
+        'site_gen' : gen_v_sites,
+        'unpack_target' : identity,
+        'assumption_test' : ignore_intervention_act_assumption,
+        'apply' : apply_ignore_intervention_act_reverse,
+    },
+
+
+]
+
 
 
 def main():
@@ -58,26 +84,24 @@ def main():
 
     root_expr = E.prob([E.v('z')], [E.do(E.v('x'))])
 
-    for site in gen_do_sites(root_expr):
-        print 'potential rule application:'
+    for rule in RULES:
+        print 'considering rule "%s"' % rule['name']
         print '\troot expr:'
         print '\t\t%s' % str(root_expr)
-        print '\ttarget application site:'
-        print '\t\t%s' % str(site)
-        prepped_args = prepare_rule_arguments(E.unpack_do, site)
-        bound_args = bind_arguments(bind, prepped_args)
-        print '\tbound args:'
-        print '\t\t%s' % str(bound_args)
-
-        can_apply = ignore_intervention_act_assumption(g = graph, **bound_args)
-        print '\tcan apply:'
-        print '\t\t%s' % str(can_apply)
-
-        if can_apply:
-            root_expr_prime = apply_ignore_intervention_act_forward(site)
-        
-            print '\tresulting expr:'
-            print '\t\t%s' % str(root_expr_prime)
+        for site in rule['site_gen'](root_expr):
+            print '\ttarget application site:'
+            print '\t\t%s' % str(site)
+            prepped_args = prepare_rule_arguments(rule['unpack_target'], site)
+            bound_args = bind_arguments(bind, prepped_args)
+            print '\tbound args:'
+            print '\t\t%s' % str(bound_args)
+            can_apply = rule['assumption_test'](g = graph, **bound_args)
+            print '\tcan apply:'
+            print '\t\t%s' % str(can_apply)
+            if can_apply:
+                root_expr_prime = rule['apply'](site)
+                print '\tresulting expr:'
+                print '\t\t%s' % str(root_expr_prime)
         
 if __name__ == '__main__':
     main()
