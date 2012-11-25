@@ -64,6 +64,19 @@ is_prob = tag_matches('prob')
 is_product = tag_matches('product')
 is_sigma = tag_matches('sigma')
 
+# a few routines for unpacking vs and dos
+def unpack_expr(expr, i=None):
+    if i is None:
+        i = 1
+    return expr[i]
+
+def unpack_v(expr):
+    assert is_v(expr)
+    return unpack_expr(expr)
+
+def unpack_do(expr):
+    assert is_do(expr)
+    return unpack_expr(expr)
 
 
 # define how to ugly-print expressions

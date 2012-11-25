@@ -9,3 +9,9 @@ def compose(f, g):
         return f(g(*args, **kwargs))
     return f_g
 
+def set_union(sets):
+    result = set()
+    for a in sets:
+        result |= a
+    return result
+
