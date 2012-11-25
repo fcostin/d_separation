@@ -2,10 +2,18 @@ import logging
 
 import expr as E
 from util import (identity, set_union)
-from main import (make_toy_graph, ignore_observations_assumption,
+from assumptions import (ignore_observations_assumption,
     ignore_intervention_act_assumption,
     ignore_intervention_entirely_assumption)
 from sitegen import (gen_do_sites, gen_v_sites, gen_birth_sites)
+
+from graph import Graph
+
+def make_toy_graph():
+    vertices = set(['x', 'y', 'z', 'h'])
+    edges = set([('h', 'x'), ('x', 'z'), ('z', 'y'), ('h', 'y')])
+    return Graph(vertices, edges)
+
 
 def prepare_rule_arguments(unpack_target, site):
     """
