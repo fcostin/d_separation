@@ -4,9 +4,10 @@ from util import (set_union)
 from main import (make_toy_graph, ignore_intervention_act_assumption)
 from sitegen import (gen_do_sites)
 
-def prepare_rule_arguments(site):
+def prepare_rule_arguments(unpack_target, site):
     """
     arguments
+        unpack_target : function s.t. map(unpack_target, target) is [variable, ...]
         site : (target, inject, left, vs, dos)
     return value:
         args : {arg_name : [variable, ...], ...}
@@ -15,7 +16,7 @@ def prepare_rule_arguments(site):
     return {
         'x' : map(E.unpack_do, dos),
         'y' : left,
-        'z' : map(E.unpack_do, target),
+        'z' : map(unpack_target, target),
         'w' : vs,
     }
 
@@ -34,6 +35,13 @@ def bind_arguments(bind, args):
         subsets = map(bind, symbols)
         result[arg_name] = set_union(subsets)
     return result
+
+def apply_ignore_intervention_act_forward(site):
+    target, inject = site[:2]
+    atom, = target
+    v = E.unpack_do(atom)
+    return inject(v)
+
 
 
 def main():
@@ -56,7 +64,7 @@ def main():
         print '\t\t%s' % str(root_expr)
         print '\ttarget application site:'
         print '\t\t%s' % str(site)
-        prepped_args = prepare_rule_arguments(site)
+        prepped_args = prepare_rule_arguments(E.unpack_do, site)
         bound_args = bind_arguments(bind, prepped_args)
         print '\tbound args:'
         print '\t\t%s' % str(bound_args)
@@ -66,10 +74,7 @@ def main():
         print '\t\t%s' % str(can_apply)
 
         if can_apply:
-            target, inject = site[:2]
-            atom, = target
-            v = E.unpack_do(atom)
-            root_expr_prime = inject(v)
+            root_expr_prime = apply_ignore_intervention_act_forward(site)
         
             print '\tresulting expr:'
             print '\t\t%s' % str(root_expr_prime)
