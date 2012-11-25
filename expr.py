@@ -161,23 +161,27 @@ def gen_matches(predicate, expr, inject=None):
             yield result
 
 def make_list_inject(i, a):
-    def list_inject(x):
-        return list(a[:i]) + [x] + list(a[i+1:])
+    def list_inject(x=None, drop=False):
+        if drop:
+            body = []
+        else:
+            body = [x]
+        return list(a[:i]) + body + list(a[i+1:])
     return list_inject
 
 def make_left_inject(tag, iota, right):
-    def inject(x):
-        return (tag, iota(x), right)
+    def inject(*args, **kwargs):
+        return (tag, iota(*args, **kwargs), right)
     return inject
 
 def make_right_inject(tag, left, iota):
-    def inject(x):
-        return (tag, left, iota(x))
+    def inject(*args, **kwargs):
+        return (tag, left, iota(*args, **kwargs))
     return inject
 
 def make_unary_inject(tag, iota):
-    def inject(x):
-        return (tag, iota(x))
+    def inject(*args, **kwargs):
+        return (tag, iota(*args, **kwargs))
     return inject
 
 def test_gen_matches():

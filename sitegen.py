@@ -8,7 +8,8 @@ rewrite rule are met. none of that stuff is done here.)
 """
 
 
-from expr import (is_prob, is_do, is_v, prob, do, v, gen_matches, make_list_inject)
+from expr import (is_prob, is_do, is_v, prob, do, v, gen_matches, make_list_inject,
+    make_right_inject)
 from util import (compose, without)
 
 def is_prob_conditioned_on_do(expr):
@@ -24,23 +25,22 @@ def gather_atoms(atoms):
         (vs if is_v(atom) else dos).append(atom)
     return vs, dos
 
-def make_prob_right_inject(i, left, right):
-    iota = make_list_inject(i, right)
-    def inject(x):
-        return prob(left, iota(x))
-    return inject
-
 def gen_replacement_sites(predicate, expr):
     left, right = expr[1], expr[2]
     for i, atom in enumerate(right):
         if predicate(atom):
-            inject = make_prob_right_inject(i, left, right)
+            iota = make_list_inject(i, right)
+            inject = make_right_inject('prob', left, iota)
             vs, dos = gather_atoms(without(i, right))
             yield [atom], inject, left, vs, dos
 
 def make_prob_append_inject(left, right):
-    def inject(x):
-        return prob(left, [x] + list(right))
+    def inject(x=None, drop=False):
+        if drop:
+            start = []
+        else:
+            start = [x]
+        return prob(left, start + list(right))
     return inject
 
 def gen_birth_sites(expr):
