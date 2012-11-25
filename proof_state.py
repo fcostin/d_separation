@@ -4,10 +4,12 @@ from expr import v as v_
 
 
 class ProofState:
-    def __init__(self, length, bindings, root_expr):
+    def __init__(self, length, bindings, root_expr, parent=None, comment=''):
         self.length = length
         self.bindings = bindings
         self.root_expr = root_expr
+        self.parent = parent
+        self.comment = comment
         self._tuple = self.as_tuple()
 
     def normalise(self, max_iters=None):
@@ -34,7 +36,7 @@ class ProofState:
             bindings = bindings_prime
             expr = expr_prime_prime
 
-        return ProofState(self.length, bindings_prime, expr_prime_prime)
+        return ProofState(self.length, bindings_prime, expr_prime_prime, self.parent, self.comment)
 
     def extract_state(self):
         # XXX todo freeze bindings

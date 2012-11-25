@@ -59,7 +59,7 @@ def make_site_generator(expr_predicate, site_predicate=None, birth_site=False):
             for site in gen_target_sites(expr):
                 target, site_inject, left, vs, dos = site
                 inject = compose(expr_inject, site_inject)
-                yield (target, inject, left, vs, dos)
+                yield (target, inject, left, vs, dos, expr)
     return gen_moves
 
 gen_v_sites = make_site_generator(is_prob_conditioned_on_v, is_v)

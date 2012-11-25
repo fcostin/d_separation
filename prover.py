@@ -1,7 +1,7 @@
 import expr as E
 from rules import (RULES, prepare_rule_arguments, bind_arguments)
 from test_rules import make_toy_graph
-from proof_state import (ProofState, get_variable_order)
+from proof_state import (ProofState, get_variable_order, relabel_expr)
 from search import search
 
 def new_variable_name(bindings):
@@ -41,7 +41,14 @@ def gen_condition_moves(universe, proof_state):
             succ_bindings = dict(proof_state.bindings)
             succ_bindings[i] = value
             succ_root_expr = inject(expr_prime)
-            yield ProofState(succ_length, succ_bindings, succ_root_expr).normalise()
+
+            succ_comment = 'conditioned %s on %s' % (
+                pleasantly_fmt(proof_state.bindings, prob_expr),
+                make_canonical_variable_name(value))
+
+            succ_proof_state = ProofState(succ_length, succ_bindings, succ_root_expr,
+                parent=proof_state, comment=succ_comment)
+            yield succ_proof_state.normalise()
     
     for value in universe:
         for succ_proof_state in gen_expansions(value, proof_state):
@@ -61,7 +68,16 @@ def gen_causal_rule_moves(rules, proof_state, graph):
             succ_length = proof_state.length + 1
             succ_bindings = dict(proof_state.bindings)
             succ_root_expr = rule['apply'](site)
-            yield ProofState(succ_length, succ_bindings, succ_root_expr).normalise()
+
+            original_expr = site[-1]
+            
+            succ_comment = 'applied rule %s to %s' % (
+                rule['name'],
+                pleasantly_fmt(proof_state.bindings, original_expr))
+
+            succ_proof_state = ProofState(succ_length, succ_bindings, succ_root_expr,
+                parent=proof_state, comment=succ_comment)
+            yield succ_proof_state.normalise()
 
 def make_expand(graph, max_proof_length):
     universe = set(frozenset([v]) for v in graph.vertices)
@@ -107,38 +123,25 @@ def proof_search(initial_proof_state, graph, goal_check, max_proof_length):
     result = search(initial_paths, expand, goal_check, extract_state, verbose=True)
     return result
 
+# some stuff to help out with pretty-printing
 
-def test_full_problem():
-    graph = make_toy_graph()
+def make_canonical_variable_name(vertex_set):
+    assert len(vertex_set) == 1
+    return list(vertex_set)[0]
 
-    initial_bindings = {
-        'x' : set(['x']),
-        'y' : set(['y']),
-    }
+def make_pleasant_variable_names(bindings):
+    new_labels = set()
+    relabel = {}
+    for (k, v) in bindings.iteritems():
+        new_k = make_canonical_variable_name(v)
+        while new_k in new_labels:
+            new_k = new_k + "'" # prime that name!
+        relabel[k] = new_k
+        new_labels.add(new_k)
+    return relabel
 
-    initial_expr = E.prob([E.v('y')], [E.do(E.v('x'))])
+def pleasantly_fmt(bindings, expr):
+    new_labels = make_pleasant_variable_names(bindings)
+    pleasant_expr = relabel_expr(new_labels, expr)
+    return str(E.fmt(pleasant_expr))
 
-    goal_expr = E.prob([], []) # XXX TODO
-
-    initial_proof_state = ProofState(
-        length = 0, # length of proof
-        bindings = initial_bindings,
-        root_expr = initial_expr,
-    ).normalise()
-
-    banned_values = set([frozenset(['h'])])
-    goal_check = make_goal_check(banned_values)
-    result = proof_search(initial_proof_state, graph, goal_check, max_proof_length=7)
-    assert result['reached_goal']
-    print 'success!'
-    print result['path']
-
-
-if __name__ == '__main__':
-    import cProfile
-    import pstats
-
-    p = cProfile.Profile()
-    p.runcall(test_full_problem)
-    s = pstats.Stats(p)
-    s.sort_stats('cumulative').print_stats(20)
