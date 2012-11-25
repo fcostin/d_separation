@@ -21,6 +21,14 @@ class ProofState:
             new_labels = make_normal_relabeling(v_order)
             bindings_prime = relabel_bindings(new_labels, bindings)
             expr_prime_prime = relabel_expr(new_labels, expr_prime)
+            if False: # for debugging
+                print '[i=%d], begin...' % i
+                print '[i=%d], expr: %s' % (i, str(expr))
+                print '[i=%d], expr_prime: %s' % (i, str(expr_prime))
+                print '[i=%d], v_order: %s' % (i, str(v_order))
+                print '[i=%d], new_labels: %s' % (i, str(new_labels))
+                print '[i=%d], bindings_prime: %s' % (i, str(bindings_prime))
+                print '[i=%d], expr_prime_prime: %s' % (i, str(expr_prime_prime))
             if expr_prime_prime == expr:
                 break
             bindings = bindings_prime
@@ -30,7 +38,7 @@ class ProofState:
 
     def extract_state(self):
         # XXX todo freeze bindings
-        bindings = freeze_dict(self.bindings)
+        bindings = freeze_bindings(self.bindings)
         return (bindings, self.root_expr)
 
     def as_tuple(self):
@@ -82,8 +90,19 @@ def replace_all_in_expr(expr, old, new):
     return expr
 
 def relabel_expr(new_labels, expr):
+    # hack: this is done in two passes, with this 'tagged' thing
+    # to ensure that things dont break when set(old_names) & set(new_names) is non-empty
+    tagged = lambda name : (None, name)
     for old, new in new_labels.iteritems():
-        expr = replace_all_in_expr(expr, v_(old), v_(new))
+        expr = replace_all_in_expr(expr, v_(old), v_(tagged(new)))
+    for _, new in new_labels.iteritems():
+        expr = replace_all_in_expr(expr, v_(tagged(new)), v_(new))
     return expr
 
+
+def freeze_bindings(bindings):
+    b = {}
+    for k, v in bindings.iteritems():
+        b[k] = frozenset(v)
+    return freeze_dict(b)
 
