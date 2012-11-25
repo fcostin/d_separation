@@ -83,7 +83,7 @@ def unpack_do(expr):
 
 def fmt(expr):
     if is_v(expr):
-        return expr[1]
+        return str(expr[1])
     elif is_do(expr):
         return 'do(%s)' % fmt(expr[1])
     elif is_prob(expr):
