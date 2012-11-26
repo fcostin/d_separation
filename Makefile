@@ -1,4 +1,4 @@
-GREED := 1e-9
+GREED := 9
 
 graph: proof_tree.svg
 
