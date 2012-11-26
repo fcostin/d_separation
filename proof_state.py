@@ -1,5 +1,5 @@
 from util import freeze_dict
-from expr import (is_v, unpack_v, gen_matches, normalise_expr, fmt, filter_map)
+from expr import (is_v, unpack_v, gen_matches, normalise_expr, fmt, filter_map, filter_walk)
 from expr import v as v_
 
 
@@ -36,6 +36,7 @@ class ProofState:
                 break
             bindings = bindings_prime
             expr = expr_prime_prime
+        print 'normalise_iters %d' % i
         return self.copy(bindings=bindings_prime, root_expr=expr_prime_prime)
 
     def copy(self, **kwargs):
@@ -68,11 +69,13 @@ class ProofState:
 def get_variable_order(root_expr):
     touched = set()
     order = []
-    for v, _ in gen_matches(is_v, root_expr):
-        if v in touched:
-            continue
-        touched.add(v)
-        order.append(unpack_v(v))
+    def f(v):
+        if v not in touched:
+            touched.add(v)
+            order.append(unpack_v(v))
+        return v
+    # abuse of map - ignore result, just use it to walk tree
+    filter_walk(is_v, f, root_expr)
     return order
 
 def make_normal_relabeling(variable_order):

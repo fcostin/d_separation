@@ -210,25 +210,46 @@ def normalise_sigma(expr):
 # it doesn't actually filter. it acts like identity where predicate is false.
 # heh.
 
-def filter_map(predicate, f, expr):
-    # do we match?
-    if predicate(expr):
-        return f(expr)
-    else:
-        if is_v(expr):
+def filter_map(predicate, f, root_expr):
+
+    def _filter_map(expr):
+        if predicate(expr):
+            return f(expr)
+        elif is_v(expr):
             return v(expr)
         elif is_do(expr):
-            return do(filter_map(predicate, f, expr[1]))
+            return do(_filter_map(expr[1]))
         elif is_prob(expr):
-            left, right = expr[1], expr[2]
-            return prob(filter_map_exprs(predicate, f, left), filter_map_exprs(predicate, f, right))
+            return prob(_filter_map_exprs(expr[1]), _filter_map_exprs(expr[2]))
         elif is_product(expr):
-            children = expr[1]
-            return product(filter_map_exprs(predicate, f, children))
+            return product(_filter_map_exprs(expr[1]))
         elif is_sigma(expr):
-            left, right = expr[1], expr[2]
-            return sigma(filter_map(predicate, f, left), filter_map(predicate, f, right))
+            return sigma(_filter_map(expr[1]), _filter_map(expr[2]))
 
-def filter_map_exprs(predicate, f, exprs):
-    return tuple(filter_map(predicate, f, expr) for expr in exprs)
+    def _filter_map_exprs(exprs):
+        return tuple(_filter_map(expr) for expr in exprs)
+
+    return _filter_map(root_expr)
+
+def filter_walk(predicate, f, root_expr):
+
+    def _filter_walk(expr):
+        if predicate(expr):
+            f(expr)
+        elif is_do(expr):
+            _filter_walk(expr[1])
+        elif is_prob(expr):
+            _filter_walk_exprs(expr[1])
+            _filter_walk_exprs(expr[2])
+        elif is_product(expr):
+            _filter_walk_exprs(expr[1])
+        elif is_sigma(expr):
+            _filter_walk(expr[1])
+            _filter_walk(expr[2])
+
+    def _filter_walk_exprs(exprs):
+        for expr in exprs:
+            _filter_walk(expr)
+
+    _filter_walk(root_expr)
 
