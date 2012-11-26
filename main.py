@@ -7,7 +7,10 @@ def main():
     graph = make_toy_graph()
 
     banned_values = set([frozenset(['h'])])
-    heuristic = make_heuristic(banned_values)
+    # dial the greed parameter up high.
+    # this makes the search very optimistic.
+    # in general this may not find the shortest proof
+    heuristic = make_heuristic(banned_values, greed=10)
 
     initial_bindings = {
         'x' : frozenset(['x']),

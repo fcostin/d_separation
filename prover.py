@@ -128,7 +128,15 @@ def count_banned_value_observations(banned_values, root_expr, bindings):
     E.filter_walk(E.is_prob, g, root_expr)
     return count[0]
 
-def make_heuristic(banned_values):
+def make_heuristic(banned_values, greed=1.0):
+    """
+    banned_values : collection of banned values
+    greed : greed parameter. values > 1.0 are inadmissable
+        will not necessarily result in the shortest proof but may be effective
+        at reducing the time until *some* proof is discovered
+    """
+
+    assert greed > 0.0
 
     def heuristic(proof_state):
         alpha = count_dos(proof_state.root_expr)
@@ -137,7 +145,7 @@ def make_heuristic(banned_values):
         # trick : divide by 2 to give lower bound on
         # number of moves to goal cause we can reduce both
         # alpha and beta by 1 if we remove a do(var(banned_value))
-        return 0.5 * (alpha + beta)
+        return 0.5 * greed * (alpha + beta)
     return heuristic
 
 def proof_search(initial_proof_state, graph, goal_check, heuristic, max_proof_length):

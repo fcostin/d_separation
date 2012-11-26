@@ -7,7 +7,7 @@ def test_full_problem():
     graph = make_toy_graph()
 
     banned_values = set([frozenset(['h'])])
-    heuristic = make_heuristic(banned_values)
+    heuristic = make_heuristic(banned_values, greed=10)
 
     initial_bindings = {
         'x' : set(['x']),
