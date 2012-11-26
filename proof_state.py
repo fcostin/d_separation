@@ -36,7 +36,6 @@ class ProofState:
                 break
             bindings = bindings_prime
             expr = expr_prime_prime
-        print 'normalise_iters %d' % i
         return self.copy(bindings=bindings_prime, root_expr=expr_prime_prime)
 
     def copy(self, **kwargs):

@@ -48,7 +48,7 @@ def gen_condition_moves(universe, proof_state):
 
             succ_proof_state = ProofState(succ_length, succ_heuristic, succ_bindings, succ_root_expr,
                 parent=proof_state, comment=succ_comment)
-            yield succ_proof_state.normalise()
+            yield succ_proof_state
     
     for value in universe:
         for succ_proof_state in gen_expansions(value, proof_state):
@@ -78,7 +78,7 @@ def gen_causal_rule_moves(rules, proof_state, graph):
 
             succ_proof_state = ProofState(succ_length, succ_heuristic, succ_bindings, succ_root_expr,
                 parent=proof_state, comment=succ_comment)
-            yield succ_proof_state.normalise()
+            yield succ_proof_state
 
 def make_expand(graph, max_proof_length, heuristic):
     universe = set(frozenset([v]) for v in graph.vertices)
@@ -94,6 +94,7 @@ def make_expand(graph, max_proof_length, heuristic):
 
     def expand(proof_state):
         for succ_proof_state in base_expand(proof_state):
+            succ_proof_state = succ_proof_state.normalise()
             yield succ_proof_state.copy(heuristic_length=heuristic(succ_proof_state))
     return expand
 
