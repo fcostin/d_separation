@@ -98,22 +98,37 @@ def make_expand(graph, max_proof_length, heuristic):
     return expand
 
 
-def count_dos(expr):
-    return len(list(E.gen_matches(E.is_do, expr)))
+def make_counter(cell):
+    def counter(_):
+        cell[0] += 1
+    return counter
 
-def count_banned_value_observations(banned_values, expr, bindings):
-    count = 0
-    for prob_expr, _ in E.gen_matches(E.is_prob, expr):
-        right = prob_expr[2]
-        for observed_expr in right:
-            for v, _ in E.gen_matches(E.is_v, observed_expr):
-                name = E.unpack_v(v)
-                value = bindings[name]
-                if value in banned_values:
-                    count += 1
-    return count
+def count_dos(expr):
+    count = [0]
+    f = make_counter(count)
+    E.filter_walk(E.is_do, f, expr)
+    return count[0]
+
+def make_banned_value_counter(banned_values, bindings):
+    p = lambda expr : E.is_v(expr) and (bindings[E.unpack_v(expr)] in banned_values)
+    def banned_value_counter(exprs):
+        count = [0]
+        f = make_counter(count)
+        for expr in exprs:
+            E.filter_walk(p, f, expr)
+        return count[0]
+    return banned_value_counter
+
+def count_banned_value_observations(banned_values, root_expr, bindings):
+    f = make_banned_value_counter(banned_values, bindings)
+    count = [0]
+    def g(prob_expr):
+        count[0] += f(prob_expr[2])
+    E.filter_walk(E.is_prob, g, root_expr)
+    return count[0]
 
 def make_heuristic(banned_values):
+
     def heuristic(proof_state):
         alpha = count_dos(proof_state.root_expr)
         beta = count_banned_value_observations(banned_values,
