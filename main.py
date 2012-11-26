@@ -1,6 +1,6 @@
 import expr as E
 from test_rules import make_toy_graph
-from proof_state import (ProofState, relabel_expr)
+from proof_state import ProofState
 from prover import (make_heuristic, proof_search, pleasantly_fmt)
 
 def main():
@@ -15,8 +15,6 @@ def main():
     }
 
     initial_expr = E.prob([E.v('y')], [E.do(E.v('x'))])
-
-    goal_expr = E.prob([], []) # XXX TODO
 
     initial_proof_state = ProofState(
         length = 0, # length of proof

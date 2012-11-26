@@ -8,7 +8,7 @@ rewrite rule are met. none of that stuff is done here.)
 """
 
 
-from expr import (is_prob, is_do, is_v, prob, do, v, gen_matches, make_list_inject,
+from expr import (is_prob, is_do, is_v, prob, gen_matches, make_list_inject,
     make_right_inject)
 from util import (compose, without)
 

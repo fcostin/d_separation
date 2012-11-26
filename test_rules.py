@@ -8,7 +8,7 @@ def make_toy_graph():
     return Graph(vertices, edges)
 
 def get_rule(name):
-    return [r for r in RULES if r['name']==name][0]
+    return [r for r in RULES if r['name'] == name][0]
 
 
 def test_claim_1():

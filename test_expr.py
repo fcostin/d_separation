@@ -1,4 +1,4 @@
-from expr import *
+from expr import (prob, v, do, fmt, gen_matches, is_v, sigma, product)
 
 def test_fmt():
     root_expr = prob([v('z')], [do(v('x'))])

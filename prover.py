@@ -1,6 +1,5 @@
 import expr as E
 from rules import (RULES, prepare_rule_arguments, bind_arguments)
-from test_rules import make_toy_graph
 from proof_state import (ProofState, get_variable_order, relabel_expr)
 from search import search
 

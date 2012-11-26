@@ -24,7 +24,7 @@ class SearchPath:
     def __gt__(self, other):
         return self._tuple > other._tuple
 
-def follow_arc(path, arc_sign, vertex):
+def follow_arc(path, _, vertex):
     return SearchPath(
         length = path.length + 1,
         vertex = vertex,
@@ -38,7 +38,7 @@ def make_expand(arcs_from, feasible_sign):
             yield follow_arc(path, arc_sign, vertex)
     return expand
 
-def has_reached_goal(path):
+def has_reached_goal(_):
     return False
 
 def find_ancestors(z, arcs_from):

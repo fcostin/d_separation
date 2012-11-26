@@ -1,4 +1,3 @@
-from partition import gen_partitions
 from d_connection import is_d_connected
 from ancestors import find_ancestors
 

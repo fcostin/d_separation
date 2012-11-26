@@ -15,7 +15,7 @@ def prepare_rule_arguments(unpack_target, site):
     return value:
         args : {arg_name : [variable, ...], ...}
     """
-    target, inject, left, vs, dos, _ = site
+    target, _, left, vs, dos, _ = site
     return {
         'x' : map(E.unpack_do, dos),
         'y' : left,

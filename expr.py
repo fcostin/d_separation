@@ -37,8 +37,8 @@ from util import (compose, identity)
 def v(name):
     return ('v', name)
 
-def do(v):
-    return ('do', v)
+def do(v_):
+    return ('do', v_)
 
 def prob(left, right):
     return ('prob', tuple(left), tuple(right))
@@ -46,8 +46,8 @@ def prob(left, right):
 def product(exprs):
     return ('product', tuple(exprs))
 
-def sigma(v, expr):
-    return ('sigma', v, expr)
+def sigma(v_, expr):
+    return ('sigma', v_, expr)
 
 
 
@@ -104,9 +104,8 @@ def gen_matches(predicate, expr, inject=None):
     # do we match?
     if predicate(expr):
         yield expr, inject
-    # recursively generate all matches in child expressions
-    tag = expr[0]
 
+    # recursively generate all matches in child expressions
     # n.b. there is a lot of redundancy here that could be cleaned up
     # by defining these operations for tuples and lists (hey, both of
     # those cases are essentially the same...)

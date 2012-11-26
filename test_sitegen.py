@@ -1,4 +1,5 @@
-from sitegen import *
+from expr import (prob, v, do)
+from sitegen import (gen_v_sites, gen_do_sites)
 
 def test_gen_v_sites():
     root_expr = prob([v('z')], [v('w'), do(v('x')), do(v('y'))])

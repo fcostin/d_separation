@@ -16,8 +16,6 @@ def test_full_problem():
 
     initial_expr = E.prob([E.v('y')], [E.do(E.v('x'))])
 
-    goal_expr = E.prob([], []) # XXX TODO
-
     initial_proof_state = ProofState(
         length = 0, # length of proof
         heuristic_length = 0,
