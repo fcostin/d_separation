@@ -4,8 +4,9 @@ from expr import v as v_
 
 
 class ProofState:
-    def __init__(self, length, bindings, root_expr, parent=None, comment=''):
+    def __init__(self, length, heuristic_length, bindings, root_expr, parent=None, comment=''):
         self.length = length
+        self.heuristic_length = heuristic_length
         self.bindings = bindings
         self.root_expr = root_expr
         self.parent = parent
@@ -35,8 +36,14 @@ class ProofState:
                 break
             bindings = bindings_prime
             expr = expr_prime_prime
+        return self.copy(bindings=bindings_prime, root_expr=expr_prime_prime)
 
-        return ProofState(self.length, bindings_prime, expr_prime_prime, self.parent, self.comment)
+    def copy(self, **kwargs):
+        keys = ['length', 'heuristic_length', 'bindings', 'root_expr', 'parent', 'comment']
+        copy_kwargs = {}
+        for key in keys:
+            copy_kwargs[key] = kwargs.get(key, getattr(self, key))
+        return ProofState(**copy_kwargs)
 
     def extract_state(self):
         # XXX todo freeze bindings
@@ -44,7 +51,7 @@ class ProofState:
         return (bindings, self.root_expr)
 
     def as_tuple(self):
-        return (self.length, ) + self.extract_state()
+        return (self.length + self.heuristic_length, ) + self.extract_state()
 
     def __lt__(self, other):
         return self._tuple < other._tuple
@@ -53,7 +60,8 @@ class ProofState:
         return self._tuple > other._tuple
 
     def __str__(self):
-        return '<ProofState length=%d expr=%s>' % (self.length, fmt(self.root_expr))
+        total_length = self.length + self.heuristic_length
+        return '<ProofState L=%1.1f expr=%s>' % (total_length, fmt(self.root_expr))
 
 # utilities required to normalise the proof state
 

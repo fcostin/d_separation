@@ -1,10 +1,13 @@
 import expr as E
 from test_rules import make_toy_graph
 from proof_state import (ProofState, relabel_expr)
-from prover import (make_goal_check, proof_search, pleasantly_fmt)
+from prover import (make_heuristic, proof_search, pleasantly_fmt)
 
 def main():
     graph = make_toy_graph()
+
+    banned_values = set([frozenset(['h'])])
+    heuristic = make_heuristic(banned_values)
 
     initial_bindings = {
         'x' : frozenset(['x']),
@@ -17,15 +20,20 @@ def main():
 
     initial_proof_state = ProofState(
         length = 0, # length of proof
+        heuristic_length = 0,
         bindings = initial_bindings,
         root_expr = initial_expr,
         parent = None,
         comment = 'initial state',
     ).normalise()
 
-    banned_values = set([frozenset(['h'])])
-    goal_check = make_goal_check(banned_values)
-    result = proof_search(initial_proof_state, graph, goal_check, max_proof_length=7)
+    # this is a little silly
+    initial_proof_state = initial_proof_state.copy(heuristic_length=heuristic(initial_proof_state))
+    
+    def goal_check(proof_state):
+        return proof_state.heuristic_length == 0
+
+    result = proof_search(initial_proof_state, graph, goal_check, heuristic, max_proof_length=7)
     assert result['reached_goal']
     print 'success!'
 

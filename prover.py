@@ -38,6 +38,7 @@ def gen_condition_moves(universe, proof_state):
             expr_prime = E.sigma(v_i, E.product([alpha, beta]))
 
             succ_length = proof_state.length + 1
+            succ_heuristic = 0
             succ_bindings = dict(proof_state.bindings)
             succ_bindings[i] = value
             succ_root_expr = inject(expr_prime)
@@ -46,7 +47,7 @@ def gen_condition_moves(universe, proof_state):
                 pleasantly_fmt(proof_state.bindings, prob_expr),
                 make_canonical_variable_name(value))
 
-            succ_proof_state = ProofState(succ_length, succ_bindings, succ_root_expr,
+            succ_proof_state = ProofState(succ_length, succ_heuristic, succ_bindings, succ_root_expr,
                 parent=proof_state, comment=succ_comment)
             yield succ_proof_state.normalise()
     
@@ -66,6 +67,7 @@ def gen_causal_rule_moves(rules, proof_state, graph):
             if not rule['assumption_test'](g = graph, **bound_args):
                 continue
             succ_length = proof_state.length + 1
+            succ_heuristic = 0
             succ_bindings = dict(proof_state.bindings)
             succ_root_expr = rule['apply'](site)
 
@@ -75,31 +77,33 @@ def gen_causal_rule_moves(rules, proof_state, graph):
                 rule['name'],
                 pleasantly_fmt(proof_state.bindings, original_expr))
 
-            succ_proof_state = ProofState(succ_length, succ_bindings, succ_root_expr,
+            succ_proof_state = ProofState(succ_length, succ_heuristic, succ_bindings, succ_root_expr,
                 parent=proof_state, comment=succ_comment)
             yield succ_proof_state.normalise()
 
-def make_expand(graph, max_proof_length):
+def make_expand(graph, max_proof_length, heuristic):
     universe = set(frozenset([v]) for v in graph.vertices)
-    def expand(proof_state):
+
+    def base_expand(proof_state):
         if proof_state.length == max_proof_length:
             return
         for succ_proof_state in gen_causal_rule_moves(RULES, proof_state, graph):
             yield succ_proof_state
 
-        if count_sigmas(proof_state.root_expr) > 2:
-            return # XXX HACK to try and prune things while debugging
         for succ_proof_state in gen_condition_moves(universe, proof_state):
             yield succ_proof_state
+
+    def expand(proof_state):
+        for succ_proof_state in base_expand(proof_state):
+            yield succ_proof_state.copy(heuristic_length=heuristic(succ_proof_state))
     return expand
 
 
-def has_no_dos(expr):
-    for _ in E.gen_matches(E.is_do, expr):
-        return False
-    return True
+def count_dos(expr):
+    return len(list(E.gen_matches(E.is_do, expr)))
 
-def observes_no_banned_values(banned_values, expr, bindings):
+def count_banned_value_observations(banned_values, expr, bindings):
+    count = 0
     for prob_expr, _ in E.gen_matches(E.is_prob, expr):
         right = prob_expr[2]
         for observed_expr in right:
@@ -107,18 +111,23 @@ def observes_no_banned_values(banned_values, expr, bindings):
                 name = E.unpack_v(v)
                 value = bindings[name]
                 if value in banned_values:
-                    return False
-    return True
+                    count += 1
+    return count
 
-def make_goal_check(banned_values):
-    def has_reached_goal(proof_state):
-        return (has_no_dos(proof_state.root_expr) and
-            observes_no_banned_values(banned_values, proof_state.root_expr, proof_state.bindings))
-    return has_reached_goal
+def make_heuristic(banned_values):
+    def heuristic(proof_state):
+        alpha = count_dos(proof_state.root_expr)
+        beta = count_banned_value_observations(banned_values,
+            proof_state.root_expr, proof_state.bindings)
+        # trick : divide by 2 to give lower bound on
+        # number of moves to goal cause we can reduce both
+        # alpha and beta by 1 if we remove a do(var(banned_value))
+        return 0.5 * (alpha + beta)
+    return heuristic
 
-def proof_search(initial_proof_state, graph, goal_check, max_proof_length):
+def proof_search(initial_proof_state, graph, goal_check, heuristic, max_proof_length):
     initial_paths = [initial_proof_state]
-    expand = make_expand(graph, max_proof_length)
+    expand = make_expand(graph, max_proof_length, heuristic)
     extract_state = lambda proof_state : proof_state.extract_state()
     result = search(initial_paths, expand, goal_check, extract_state, verbose=True)
     return result

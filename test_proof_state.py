@@ -7,7 +7,7 @@ def test_normalise_single_iter():
 
     bindings = {'x' : 'xxx', 'z' : 'zzz', 'y' : 'yyy', 'a' : 'aaa'}
 
-    state = ProofState(0, bindings, root_expr)
+    state = ProofState(0, 0, bindings, root_expr)
 
     normalised_state = state.normalise(max_iters=1)
 
@@ -33,7 +33,7 @@ def test_normalise_fixed_point():
 
     bindings = {'x' : 'xxx', 'z' : 'zzz', 'y' : 'yyy', 'a' : 'aaa'}
 
-    state = ProofState(0, bindings, root_expr)
+    state = ProofState(0, 0, bindings, root_expr)
 
     normalised_state = state.normalise()
 
