@@ -59,7 +59,7 @@ a toy theorem prover for causal calculus
 
 *   it only considers subsets of single vertices
 *   it limits the number of conditioning moves applied to 2 (this is a hack to control search space)
-*   it takes about 8 seconds to prove the example in the article
+*   it takes about 0.2 seconds to prove the example in the article using a greedy heuristic (!)
 *   it uses a depth-limited breadth-first search to search all proofs wrt the length of the proof
 
 
@@ -73,6 +73,7 @@ a toy theorem prover for causal calculus
         -   contains no "do" sub-expressions
         -   does not condition on any specified hidden variables
     +   blindly generate all legal moves and try them, with respect to known rules
+    +   now uses greedy heuristic to attract search toward promising-looking expressions
     +   known rules:
         -   conditioning on a vertex of graph (a random variable)
         -   applying causal calculus rules 1, 2 and 3 in forward direction
